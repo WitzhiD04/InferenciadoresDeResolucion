@@ -69,8 +69,8 @@ bool Motor::resolver(Literal objetivo) {
 }
 
 Clausula* Motor::comparacion(Clausula c1, Clausula c2) {
-    for (int i = 0; i < c1.getLiteralesSize(); ++i) {
-        for (int j = 0; j < c2.getLiteralesSize(); ++j) {
+    for (int i = 0; i < c1.getLiteralesSize(); i++) {
+        for (int j = 0; j < c2.getLiteralesSize(); j++) {
             Literal l1 = c1.getLiteral(i);
             Literal l2 = c2.getLiteral(j);
 
