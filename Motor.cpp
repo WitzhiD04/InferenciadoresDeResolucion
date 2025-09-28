@@ -30,7 +30,6 @@ bool Motor::resolver(Literal objetivo) {
 
     while (nuevaAgregada) {
         nuevaAgregada = false;
-        vector<Clausula> clausulasTemporales;
         
         for (int i = 0; i < nuevasClausulas.size(); i++) {
             for (int j = i + 1; j < nuevasClausulas.size(); ++j) {
