@@ -79,7 +79,7 @@ Clausula* Motor::comparacion(Clausula c1, Clausula c2) {
             Literal l1 = c1.getLiteral(i);
             Literal l2 = c2.getLiteral(j);
 
-            if (l1.getNombre() == l2.getNombre() && l1.esNegado() != l2.esNegado() && l1.getArgumentos() == l2.getArgumentos()) {
+            if (l1.getNombre() == l2.getNombre() && l1.esNegado() != l2.esNegado() ) {
                 map<string, string> sub;
                 if (Literal::unificar(l1.getArgumentos(), l2.getArgumentos(), sub)) {
                 vector<Literal> nuevosLiterales;
