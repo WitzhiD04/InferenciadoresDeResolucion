@@ -10,6 +10,7 @@ using namespace std;
 class Motor {
 private:
     vector <Clausula> clausulas;
+    int contadorVariables;
 public:
     Motor(vector<Clausula> clausulas);
     void agregarClausula(Clausula c);

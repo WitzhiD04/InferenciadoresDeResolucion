@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <map>
 #include "Literal.h"
 using namespace std;
 
@@ -21,6 +22,8 @@ public:
     bool getNegado(int indice);
     const vector<Literal>& getLiterales();
 
+    Clausula aplicarSustitucion(const map<string,string>& sub) const;
+    Clausula renombrarVariables(int& contadorVars) const;
 };
 
 #endif

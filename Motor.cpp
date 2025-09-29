@@ -2,7 +2,7 @@
 #include <iostream>
 using namespace std;
 
-Motor::Motor(vector<Clausula> clausulas) {
+Motor::Motor(vector<Clausula> clausulas) : contadorVariables(0) {
     this->clausulas = clausulas;
 }
 
@@ -69,23 +69,29 @@ bool Motor::resolver(Literal objetivo) {
 }
 
 Clausula* Motor::comparacion(Clausula c1, Clausula c2) {
+    // Renombrar vars en c2 para estandarizar
+    int tempContador = contadorVariables;
+    c2 = c2.renombrarVariables(tempContador);
+    contadorVariables = tempContador;  // Actualizar global si se usaron nuevas vars
+
     for (int i = 0; i < c1.getLiteralesSize(); i++) {
         for (int j = 0; j < c2.getLiteralesSize(); j++) {
             Literal l1 = c1.getLiteral(i);
             Literal l2 = c2.getLiteral(j);
 
             if (l1.getNombre() == l2.getNombre() && l1.esNegado() != l2.esNegado() && l1.getArgumentos() == l2.getArgumentos()) {
-
+                map<string, string> sub;
+                if (Literal::unificar(l1.getArgumentos(), l2.getArgumentos(), sub)) {
                 vector<Literal> nuevosLiterales;
                 for (int k = 0; k < c1.getLiteralesSize(); k++) {
                     if (k != i) {
-                        nuevosLiterales.push_back(c1.getLiteral(k));
+                        nuevosLiterales.push_back(c1.getLiteral(k).aplicarSustitucion(sub));
                     } 
                 }
 
                 for (int k = 0; k < c2.getLiteralesSize(); k++) {
                     if (k != j) {
-                        nuevosLiterales.push_back(c2.getLiteral(k));
+                        nuevosLiterales.push_back(c2.getLiteral(k).aplicarSustitucion(sub));
                     } 
                 }
                     
@@ -96,5 +102,6 @@ Clausula* Motor::comparacion(Clausula c1, Clausula c2) {
             }
         }
     }
+}
     return nullptr; 
 }

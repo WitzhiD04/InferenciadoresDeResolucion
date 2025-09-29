@@ -1,5 +1,6 @@
 #include "Clausula.h"
 #include <iostream>
+#include <map>
 using namespace std;
 
 Clausula::Clausula(vector<Literal> literales) {
@@ -47,4 +48,34 @@ bool Clausula::getNegado(int indice) {
 
 const vector<Literal>& Clausula::getLiterales() {
     return this->literales;
+}
+
+Clausula Clausula::aplicarSustitucion(const map<string,string>& sub) const {
+    vector<Literal> nuevosLiterales;
+    for (const Literal& lit : literales) {
+        nuevosLiterales.push_back(lit.aplicarSustitucion(sub));
+    }
+    return Clausula(nuevosLiterales);
+}
+
+Clausula Clausula::renombrarVariables(int& contadorVars) const {
+    map<string,string> renombre;
+    vector<Literal> nuevosLiterales;
+    for (const Literal& lit : literales) {
+        vector<string> args = lit.getArgumentos();
+        for (string& arg : args) {
+            if (Literal::esVariable(arg)) {
+                map<string,string>::const_iterator it = renombre.find(arg);
+                if (it == renombre.end()) {
+                    string nuevaVar = "?v" + to_string(contadorVars++);
+                    renombre[arg] = nuevaVar;
+                    arg = nuevaVar;
+                } else {
+                    arg = it->second;
+                }
+            }
+        }
+        nuevosLiterales.push_back(Literal(lit.getNombre(), lit.esNegado(), args));
+    }
+    return Clausula(nuevosLiterales);
 }
