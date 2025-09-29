@@ -1,0 +1,9 @@
+Hombre(marco)
+Pompeyano(marco)
+~Pompeyano(?x) v Romano(?x)
+Gobernante(cesar)
+~Romano(?x) v Leal(?x,cesar) v Odia(?x,cesar)
+~Hombre(?x) v ~Gobernante(?y) v ~IntentaAsesinar(?x,?y) v ~Leal(?x,?y)
+IntentaAsesinar(marco,cesar)
+
+Objetivo: Odia(marco,cesar)
