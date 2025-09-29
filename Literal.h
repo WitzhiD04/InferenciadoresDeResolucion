@@ -19,7 +19,9 @@ public:
     string getNombre();
     bool esNegado();
     const vector<string>& getArgumentos();
-
+    bool operator==(const Literal &o) const;
+    static bool esVariable(const string &s);
+    string toString() const;
 };
 
 #endif

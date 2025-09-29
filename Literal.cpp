@@ -1,5 +1,6 @@
-#include "Literal.h"
+ #include "Literal.h"
 #include <iostream>
+#include <sstream>
 using namespace std;
 
 Literal::Literal(string nombre, bool negado, vector<string> argumentos)  {
@@ -40,5 +41,30 @@ bool Literal::esNegado() {
 
 const vector<string>& Literal::getArgumentos() {
     return this->argumentos;
+}
+
+bool Literal::operator==(const Literal &o) const {
+    return negado == o.negado && nombre == o.nombre && argumentos == o.argumentos;
+}
+
+
+bool Literal::esVariable(const string &s) {
+    return !s.empty() && (s[0] == '?' || (s[0] >= 'A' && s[0] <= 'Z'));
+}
+
+
+std::string Literal::toString() const {
+    std::ostringstream os;
+    if (negado) os << "¬";
+    os << nombre;
+    if (!argumentos.empty()) {
+        os << "(";
+        for (size_t i = 0; i < argumentos.size(); ++i) {
+            if (i) os << ", ";
+            os << argumentos[i];
+        }
+        os << ")";
+    }
+    return os.str();
 }
 
