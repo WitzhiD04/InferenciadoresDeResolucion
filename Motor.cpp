@@ -33,8 +33,8 @@ bool Motor::resolver(Literal objetivo) {
     // Entrada: literal que se desea demostrar a partir de la KB.
     // Método: refutación. Se agrega ¬objetivo y se intenta derivar la vacía.
 
-    cout << "Resolviendo para el objetivo: ";
-    objetivo.imprimir();
+    //cout << "Resolviendo para el objetivo: ";
+    //objetivo.imprimir();
 
     // Por refutación: trabajamos con la negación del objetivo
     objetivo = objetivo.inverso();
@@ -80,7 +80,7 @@ bool Motor::resolver(Literal objetivo) {
                     if (!existe) {
                         // Agrega el nuevo resolvente y marca que hubo progreso
                         nuevasClausulas.push_back(*resultado);
-                        cout << "Agregada nueva clausula." << endl;
+                        //cout << "Agregada nueva clausula." << endl;
                         nuevaAgregada = true;
                     }
                     delete resultado; // liberar memoria del resolvente creado con new
