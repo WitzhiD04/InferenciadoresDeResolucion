@@ -1,0 +1,10 @@
+~Americano(?x) v ~Arma(?y) v ~Sell(?x,?y,?z) v ~Hostil(?z) v Criminal(?x)
+~Misil(?x) v ~Tiene(nono,?x) v Sell(west,?x,nono)
+~Enemigo(?x,america) v Hostil(?x)
+~Misil(?x) v Arma(?x)
+Tiene(nono,misil)
+Misil(misil)
+Americano(west)
+Enemigo(nono,america)
+
+objt: Criminal(west)
