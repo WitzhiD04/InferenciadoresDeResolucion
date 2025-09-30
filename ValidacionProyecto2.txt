@@ -1,3 +1,6 @@
+
+// Se cambia Vende por Sell, ya que el programa toma las v como disyunción
+
 ~Americano(?x) v ~Arma(?y) v ~Sell(?x,?y,?z) v ~Hostil(?z) v Criminal(?x)
 ~Misil(?x) v ~Tiene(nono,?x) v Sell(west,?x,nono)
 ~Enemigo(?x,america) v Hostil(?x)
