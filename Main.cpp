@@ -9,61 +9,78 @@
 
 using namespace std;
 
-/* ---------- util ---------- */
+/* ---------- Funciones utilitarias ---------- */
+
+// trim: elimina espacios en blanco al inicio y al final de un string
 static inline string trim(string s){
     auto notsp = [](int ch){ return !isspace(ch); };
     s.erase(s.begin(), find_if(s.begin(), s.end(), notsp));
     s.erase(find_if(s.rbegin(), s.rend(), notsp).base(), s.end());
     return s;
 }
+
+// split: divide un string en tokens usando un separador (sep)
+// Tiene en cuenta paréntesis: no parte dentro de ellos.
 static inline void split(const string& s, char sep, vector<string>& out){
     out.clear();
     string cur; 
-    int depth = 0; // para no partir dentro de ( )
+    int depth = 0; // profundidad de paréntesis
     for(char c: s){
         if(c=='(') depth++;
         if(c==')') depth = max(0, depth-1);
-        if(c==sep && depth==0){ out.push_back(trim(cur)); cur.clear(); }
+        if(c==sep && depth==0){ 
+            out.push_back(trim(cur)); 
+            cur.clear(); 
+        }
         else cur.push_back(c);
     }
     if(!cur.empty()) out.push_back(trim(cur));
 }
 
-/* LITERAL: "~P(?x, a)"  o "R" (sin args) */
+/* ---------- Parseo de literales ---------- */
+// Ejemplos válidos: "~P(?x, a)"  o "R" (sin args)
 static Literal parseLiteral(const string& token){
     string t = trim(token);
     bool neg = false;
-    if(!t.empty() && (t[0]=='~')){ neg=true; t=t.substr(1); t=trim(t); }
+    if(!t.empty() && (t[0]=='~')){ // ~ indica negación
+        neg=true; 
+        t=t.substr(1); 
+        t=trim(t); 
+    }
 
-    // nombre y args
+    // nombre del predicado y sus argumentos
     string nombre;
     vector<string> args;
     size_t p = t.find('(');
     if(p==string::npos){
+        // no hay paréntesis -> predicado sin argumentos
         nombre = trim(t);
     } else {
         nombre = trim(t.substr(0, p));
         size_t q = t.rfind(')');
-        if(q==string::npos || q < p) throw runtime_error("Paréntesis no balanceados en literal: " + token);
+        if(q==string::npos || q < p) 
+            throw runtime_error("Paréntesis no balanceados en literal: " + token);
         string inside = t.substr(p+1, q-p-1);
         vector<string> parts;
-        split(inside, ',', parts);
+        split(inside, ',', parts); // separar args por coma
         for(string &a: parts) args.push_back(trim(a));
     }
     return Literal(nombre, neg, args);
 }
 
-/* CLAUSULA: "~P(?x) v Q(?x) v R(a)" */
+/* ---------- Parseo de cláusulas ---------- */
+// Ejemplo: "~P(?x) v Q(?x) v R(a)"
 static Clausula parseClause(const string& line){
     string s = trim(line);
-    if(s.empty()) return Clausula(vector<Literal>{}); // vacía si llega línea vacía
+    if(s.empty()) return Clausula(vector<Literal>{}); // devuelve vacía
+
     string tmp = s;
     // normaliza separadores a 'v'
     replace(tmp.begin(), tmp.end(), '|', 'v');
     for(char &ch: tmp) if(ch=='V') ch='v';
 
     vector<string> lits;
-    split(tmp, 'v', lits);
+    split(tmp, 'v', lits); // separar literales
     vector<Literal> vec; vec.reserve(lits.size());
     for(string &tk : lits){
         if(trim(tk).empty()) continue;
@@ -72,6 +89,7 @@ static Clausula parseClause(const string& line){
     return Clausula(vec);
 }
 
+/* ---------- Banner de bienvenida ---------- */
 static void printBanner(){
     cout << "=== Motor de Resolucion (entrada rapida) ===\n";
     cout << "Formato de clausula por linea (CNF):\n";
@@ -81,12 +99,12 @@ static void printBanner(){
     cout << "Termina KB con una linea vacia.\n\n";
 }
 
-/* -------- main ---------- */
+/* ---------- Programa principal ---------- */
 int main(){
 
-    printBanner();
+    printBanner(); // mostrar instrucciones
 
-    vector<Clausula> base;
+    vector<Clausula> base; // base de conocimiento
     cout << "Ingresa la base de conocimiento (una clausula por linea):\n";
     cout << "Ejemplo:\n";
     cout << "  P(a)\n";
@@ -96,14 +114,13 @@ int main(){
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    
-
+    // --------- Lectura de la KB ----------
     string line;
     while (true){
         cout << "KB> ";
         if(!std::getline(cin, line)) break;
         line = trim(line);
-        if(line.empty()) break;
+        if(line.empty()) break; // línea vacía termina la KB
         try{
             Clausula c = parseClause(line);
             if(c.getLiterales().empty()){
@@ -124,29 +141,25 @@ int main(){
     cout << "Ingresa consultas (literal por linea). Ej: Q(a)\n";
     cout << "(linea vacia para salir)\n\n";
 
-    // Mostrar KB resumida
+    // Mostrar la KB cargada
     cout << "\nKB cargada (" << base.size() << " clausulas):\n";
     for(size_t i=0;i<base.size();++i){
         cout << "  " << i+1 << ") ";
         base[i].imprimir(); 
     }
-
     cout << "\n";
 
-
-    
-
+    // --------- Creación del motor ----------
     Motor motor(base);
 
-    
+    // --------- Bucle de consultas ----------
     while(true){
         cout << "ASK> ";
         if(!std::getline(cin, line)) break;
         line = trim(line);
-        if(line.empty()) break;
+        if(line.empty()) break; // salir si línea vacía
         try{
             Clausula qC = parseClause(line);
-            // forzamos que sea un solo literal (consulta tipo literal)
             vector<Literal> lits = qC.getLiterales();
             if(lits.empty()){
                 cerr << "  [Error] Consulta vacia.\n";
