@@ -25,7 +25,7 @@ Literal Literal::inverso() {
     return Literal(this->nombre, !this->negado, this->argumentos);
 }
 
-void Literal::imprimir() {
+void Literal::imprimir() const {
     // Imprime el literal en consola en formato legible
     if (this->negado) {
         cout << "¬"; // símbolo de negación

@@ -3,6 +3,13 @@
 #include <map>
 using namespace std;
 
+// Constructor por defecto
+Clausula::Clausula() {}
+#include "Clausula.h"
+#include <iostream>
+#include <map>
+using namespace std;
+
 // ============================
 // Implementación de la clase Clausula
 // Una cláusula es una disyunción (OR) de literales.
@@ -13,7 +20,7 @@ Clausula::Clausula(vector<Literal> literales) {
     this->literales = literales;
 }
 
-void Clausula::imprimir() {
+void Clausula::imprimir() const {
     // Imprime la cláusula en forma legible: L1 V L2 V L3
     for (int i = 0; i < this->literales.size(); i++) {
         this->literales[i].imprimir();   // imprime cada literal
@@ -24,7 +31,7 @@ void Clausula::imprimir() {
     cout << endl; // salto de línea al final
 }
 
-bool Clausula::esVacia() {
+bool Clausula::esVacia() const {
     // Retorna true si la cláusula no tiene literales (cláusula vacía)
     return this->literales.empty();
 }
@@ -34,7 +41,7 @@ int Clausula::getLiteralesSize() {
     return this->literales.size();
 }
 
-Literal Clausula::getLiteral(int indice) {
+Literal Clausula::getLiteral(int indice) const {
     // Devuelve el literal en la posición dada, si existe
     if (indice >= 0 && indice < this->literales.size()) {
         return this->literales[indice];
@@ -59,7 +66,7 @@ bool Clausula::getNegado(int indice) {
     return false; // Si índice no válido, devuelve falso por defecto
 }
 
-const vector<Literal>& Clausula::getLiterales() {
+const vector<Literal>& Clausula::getLiterales() const{
     // Retorna la referencia al vector de literales completo
     return this->literales;
 }

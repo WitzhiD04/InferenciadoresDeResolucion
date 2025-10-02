@@ -16,7 +16,7 @@ private:
 public:
     Literal(string nombre, bool negado, vector<string> argumentos);
     Literal inverso();
-    void imprimir();
+    void imprimir() const;
     string getNombre() const;
     bool esNegado() const;
     const vector<string>& getArgumentos() const;

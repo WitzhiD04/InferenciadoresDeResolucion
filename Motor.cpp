@@ -1,5 +1,8 @@
 #include "Motor.h"
 #include <iostream>
+#include <algorithm>
+#include <functional>
+
 using namespace std;
 
 // ============================
@@ -29,126 +32,166 @@ void Motor::imprimir() {
     }
 }
 
+
+// ========imprime sustitución σ de forma compacta ========
+void Motor::imprimirSigma(const map<string,string>& s) const {
+    if (s.empty()) { cout << "σ = {}"; return; }
+    cout << "σ = { ";
+    bool first=true;
+    for (auto &kv : s) {
+        if (!first) cout << ", ";
+        first=false;
+        cout << kv.first << "/" << kv.second;
+    }
+    cout << " }";
+}
+
+// ========reconstruye y muestra SOLO la cadena de prueba ========
+void Motor::imprimirPrueba(int /*idVacia*/) const {
+    // Imprime solo la cadena de pasos estrictamente necesarios para la derivación de la cláusula vacía
+    if (pasos.empty() || !pasos.back().resolvente.esVacia()) {
+        cout << "No se derivó la cláusula vacía.\n";
+        return;
+    }
+
+    // Recolectar índices de pasos usados en la prueba mínima (hacia atrás)
+    std::vector<size_t> usados;
+    std::vector<bool> visitado(pasos.size(), false);
+    std::function<void(size_t)> recolectar;
+    recolectar = [&](size_t idx) {
+        if (idx >= pasos.size() || visitado[idx]) return;
+        visitado[idx] = true;
+        usados.push_back(idx);
+        // Buscar padres en pasos (si existen)
+        // Como snapshots, buscamos por igualdad de resolvente
+        for (size_t j = 0; j < pasos.size(); ++j) {
+            if (!visitado[j] && (pasos[j].resolvente.getLiterales() == pasos[idx].padreA_snapshot.getLiterales() ||
+                                 pasos[j].resolvente.getLiterales() == pasos[idx].padreB_snapshot.getLiterales())) {
+                recolectar(j);
+            }
+        }
+    };
+    recolectar(pasos.size() - 1); // desde la vacía
+
+    // Invertir para imprimir en orden de derivación
+    std::reverse(usados.begin(), usados.end());
+
+    cout << "=== PRUEBA (solo pasos necesarios) ===\n";
+    for (size_t k = 0; k < usados.size(); ++k) {
+        const Step &st = pasos[usados[k]];
+        cout << "[A] "; st.padreA_snapshot.imprimir();
+        cout << "[B] "; st.padreB_snapshot.imprimir();
+        cout << "=> R: ";
+        st.resolvente.imprimir();
+        cout << "     [resolviendo: ";
+        st.litA_snapshot.imprimir();
+        cout << "     con     ";
+        st.litB_snapshot.imprimir();
+        cout << "     σ = ";
+        imprimirSigma(st.sigma);
+        cout << "\n";
+    }
+    cout << "⟂  (cláusula vacía)\n";
+}
+
 bool Motor::resolver(Literal objetivo) {
-    // Entrada: literal que se desea demostrar a partir de la KB.
-    // Método: refutación. Se agrega ¬objetivo y se intenta derivar la vacía.
+    cout << "Resolviendo para el objetivo: ";
+    objetivo.imprimir();
 
-    //cout << "Resolviendo para el objetivo: ";
-    //objetivo.imprimir();
-
-    // Por refutación: trabajamos con la negación del objetivo
+    // 1) Refutación: agregar ¬objetivo
     objetivo = objetivo.inverso();
 
-    // Copia de la KB para esta corrida y añadimos la cláusula {¬objetivo}
-    vector<Clausula> nuevasClausulas = this->clausulas;
-    nuevasClausulas.push_back(Clausula({objetivo}));
+    // 2) Inicializar ‘todas’ con KB y luego ir metiendo resolventes
+    todas = clausulas;
+    pasos.clear();
 
-    // Bandera para saber si en la última pasada se agregó algo nuevo
+    // set-of-support opcional: aquí usamos la estrategia simple original:
+    vector<Clausula> nuevasClausulas = clausulas;
+    nuevasClausulas.push_back(Clausula({objetivo}));
+    todas.push_back(Clausula({objetivo}));
+    int idxObj = (int)todas.size() - 1;
+
     bool nuevaAgregada = true;
 
-    // Bucle principal de resolución: intenta todos los pares de cláusulas,
-    // generando resolventes nuevos hasta que no aparezcan más (o salga vacía).
     while (nuevaAgregada) {
         nuevaAgregada = false;
-        
-        // Explora todas las parejas (i,j), i < j, para evitar repetir pares.
-        for (int i = 0; i < nuevasClausulas.size(); i++) {
-            for (int j = i + 1; j < nuevasClausulas.size(); ++j) {
+
+        // solo derivar y guardar la traza
+        for (int i = 0; i < (int)nuevasClausulas.size(); i++) {
+            for (int j = i + 1; j < (int)nuevasClausulas.size(); ++j) {
                 Clausula c1 = nuevasClausulas[i];
                 Clausula c2 = nuevasClausulas[j];
 
-                // Intenta resolver c1 con c2 (si hay literales complementarios unificables)
-                Clausula* resultado = comparacion(c1, c2);
-
-                if (resultado != nullptr) {
-                    // Si el resolvente es la cláusula vacía, ¡refutación lograda!
+                Clausula pA, pB;
+                Literal lA("", false, {}), lB("", false, {});
+                map<string,string> sigma;
+                Clausula* resultado = comparacion(c1, c2, pA, pB, lA, lB, sigma);
+                if (resultado) {
+                    pasos.push_back(Step{ *resultado, pA, pB, lA, lB, sigma });
                     if (resultado->esVacia()) {
-                        cout << "Se ha derivado la clausula vacía. Objetivo demostrado." << endl;
+                        todas.push_back(*resultado);
+                        imprimirPrueba(0);
+                        cout << "Se ha derivado la clausula vacía. Objetivo demostrado.\n";
                         delete resultado;
-                        return true; 
-                    } 
-
-                    // Evitar duplicados exactos: si ya existe, no la agregamos.
+                        return true;
+                    }
+                    // Evitar duplicados exactos
                     bool existe = false;
-                    for (int k = 0; k < nuevasClausulas.size(); k++) {
+                    for (int k = 0; k < (int)nuevasClausulas.size(); k++) {
                         if (nuevasClausulas[k].getLiterales() == resultado->getLiterales()) {
-                            existe = true;
-                            break;
+                            existe = true; break;
                         }
                     }
-                        
                     if (!existe) {
-                        // Agrega el nuevo resolvente y marca que hubo progreso
                         nuevasClausulas.push_back(*resultado);
-                        //cout << "Agregada nueva clausula." << endl;
+                        todas.push_back(*resultado);
                         nuevaAgregada = true;
                     }
-                    delete resultado; // liberar memoria del resolvente creado con new
+                    delete resultado;
                 }
             }
         }
     }
 
-    // Si sale del while sin derivar la vacía, no se pudo probar el objetivo.
-    cout << "No se pudo derivar una nueva clausula, no se llegó a clausula vacía" << endl;
+    cout << "No se pudo derivar una nueva clausula, no se llegó a clausula vacía\n";
     return false;
 }
 
-Clausula* Motor::comparacion(Clausula c1, Clausula c2) {
-    // Intenta resolver c1 y c2:
-    // 1) Estandariza variables de c2 (renombrado) para evitar colisiones.
-    // 2) Busca un par de literales con mismo predicado y negación opuesta.
-    // 3) Si sus argumentos unifican, aplica la sustitución a las cláusulas
-    //    y construye el resolvente eliminando los dos literales resueltos.
-
-    // Renombrar variables en c2 para estandarizar-aparte (standardize apart)
+Clausula* Motor::comparacion(Clausula c1, Clausula c2,
+                             Clausula &outPadreA, Clausula &outPadreB,
+                             Literal &outLitA, Literal &outLitB,
+                             map<string,string> &outSigma) {
+    // Estandarizar c2 para evitar choques de variables
     int tempContador = contadorVariables;
     c2 = c2.renombrarVariables(tempContador);
-    contadorVariables = tempContador;  // Actualiza el contador global si se usaron nuevas vars
+    contadorVariables = tempContador;
 
-    // Recorre todos los pares de literales (uno en c1, otro en c2)
     for (int i = 0; i < c1.getLiteralesSize(); i++) {
         for (int j = 0; j < c2.getLiteralesSize(); j++) {
             Literal l1 = c1.getLiteral(i);
             Literal l2 = c2.getLiteral(j);
 
-            // Candidatos a resolver: mismo nombre y negaciones opuestas
-            if (l1.getNombre() == l2.getNombre() && l1.esNegado() != l2.esNegado() ) {
-
-                // Intento de unificación de los argumentos
+            if (l1.getNombre() == l2.getNombre() && l1.esNegado() != l2.esNegado()) {
                 map<string, string> sub;
                 if (Literal::unificar(l1.getArgumentos(), l2.getArgumentos(), sub)) {
 
-                    // Construcción del resolvente:
-                    // - Tomar todos los literales de c1 excepto l1, aplicando σ
-                    // - Tomar todos los literales de c2 excepto l2, aplicando σ
                     vector<Literal> nuevosLiterales;
+                    for (int k = 0; k < c1.getLiteralesSize(); k++)
+                        if (k != i) nuevosLiterales.push_back(c1.getLiteral(k).aplicarSustitucion(sub));
+                    for (int k = 0; k < c2.getLiteralesSize(); k++)
+                        if (k != j) nuevosLiterales.push_back(c2.getLiteral(k).aplicarSustitucion(sub));
 
-                    for (int k = 0; k < c1.getLiteralesSize(); k++) {
-                        if (k != i) {
-                            nuevosLiterales.push_back(c1.getLiteral(k).aplicarSustitucion(sub));
-                        } 
-                    }
+                    // Snapshots exactos de lo usado
+                    outPadreA = c1;
+                    outPadreB = c2;
+                    outLitA   = l1;
+                    outLitB   = l2;
+                    outSigma  = sub;
 
-                    for (int k = 0; k < c2.getLiteralesSize(); k++) {
-                        if (k != j) {
-                            nuevosLiterales.push_back(c2.getLiteral(k).aplicarSustitucion(sub));
-                        } 
-                    }
-                    
-                    // Nota: aquí no se eliminan tautologías ni duplicados dentro de la misma cláusula.
-                    // (Se podría mejorar más adelante)
-                    Clausula* nuevaClausula = new Clausula(nuevosLiterales);
-
-                    // Traza para el usuario: muestra el resolvente generado
-                    cout << "Nueva clausula derivada: ";
-                    nuevaClausula->imprimir();
-
-                    return nuevaClausula; // Devuelve el resolvente
+                    return new Clausula(nuevosLiterales);
                 }
             }
         }
     }
-    // Si no se encontró ningún par resoluble, retorna nullptr
-    return nullptr; 
+    return nullptr;
 }
