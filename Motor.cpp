@@ -105,7 +105,7 @@ bool Motor::resolver(Literal objetivo) {
     todas = clausulas;
     pasos.clear();
 
-    // set-of-support opcional: aquí usamos la estrategia simple original:
+    
     vector<Clausula> nuevasClausulas = clausulas;
     nuevasClausulas.push_back(Clausula({objetivo}));
     todas.push_back(Clausula({objetivo}));
